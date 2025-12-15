@@ -2,6 +2,7 @@ import socket
 import threading
 import json
 import pygame
+from pygame import mixer
 import time
 
 DISCOVERY_PORT = 50001
@@ -26,6 +27,27 @@ def discover_rooms(timeout=1.5):
             pass
 
     return found
+
+class SoundManager:
+    def __init__(self):
+        mixer.init()
+        self.sounds = {}
+        self.load_sounds()
+    
+    def load_sounds(self):
+        try:
+            self.sounds['connect'] = mixer.Sound('client/sounds/connect.mp3')
+            self.sounds['move'] = mixer.Sound('client/sounds/movement.mp3')
+            self.sounds['error'] = mixer.Sound('client/sounds/error.mp3')
+        except FileNotFoundError:
+            print("[SOUND] Sound files not found, using generated sounds")
+    
+    def play(self, sound_name):
+        try:
+            if sound_name in self.sounds and self.sounds[sound_name]:
+                self.sounds[sound_name].play()
+        except Exception as e:
+            print(f"[SOUND] Error playing sound {sound_name}: {e}")
 
 class Client:
     def __init__(self):
@@ -84,6 +106,7 @@ class Client:
         except:
             pass
 
+sound_mgr = SoundManager()
 # ---------------------- PYGAME LOOP ----------------------
 
 def main_menu(screen):
@@ -236,12 +259,14 @@ while True:
         if not rooms:
             error_screen(screen, "No rooms found")
             continue
+        sound_mgr.play('connect')
         fade_transition(screen, duration=0.5, fade_out=True)
         fade_transition(screen, duration=0.5, fade_out=False)
         client.connect(rooms[0]["host"], rooms[0]["room_code"])
 
     elif choice == "custom":
         room_code = join_room_menu(screen)
+        sound_mgr.play('connect')
         fade_transition(screen, duration=0.5, fade_out=True)
         fade_transition(screen, duration=0.5, fade_out=False)
         client.connect("127.0.0.1", room_code)
@@ -249,12 +274,14 @@ while True:
         time.sleep(0.5)
 
         if client.error:
-            #fade_transition(screen, duration=0.5, fade_out=True)
-            #fade_transition(screen, duration=0.5, fade_out=False)
+            sound_mgr.play('error')
+            fade_transition(screen, duration=0.5, fade_out=True)
+            fade_transition(screen, duration=0.5, fade_out=False)
             error_screen(screen, client.error)
             continue
 
     elif choice == "create":
+        sound_mgr.play('connect')
         rooms = discover_rooms()
         room_code = rooms[0]["room_code"]
         fade_transition(screen, duration=0.5, fade_out=True)
@@ -266,21 +293,73 @@ while True:
 
 running = True
 font = pygame.font.SysFont(None, 24)
+playing_sounds = {}
+
 while running:
     dx = dy = 0
     for e in pygame.event.get():
         if e.type == pygame.QUIT:
             running = False
 
+    dx = dy = 0
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT]: dx = -5
-    if keys[pygame.K_RIGHT]: dx = 5
-    if keys[pygame.K_UP]: dy = -5
-    if keys[pygame.K_DOWN]: dy = 5
-
+        
+    for e in pygame.event.get():
+        if e.type == pygame.QUIT:
+            running = False
+        
+        # LEFT key
+    if keys[pygame.K_LEFT]:
+        dx = -5
+        if 'move_left' not in playing_sounds:
+            sound = sound_mgr.sounds['move']
+            sound.play(-1)  # -1 = loop infinitely
+            playing_sounds['move_left'] = sound
+    else:
+        if 'move_left' in playing_sounds:
+            playing_sounds['move_left'].stop()
+            del playing_sounds['move_left']
+        
+        # RIGHT key
+    if keys[pygame.K_RIGHT]:
+        dx = 5
+        if 'move_right' not in playing_sounds:
+            sound = sound_mgr.sounds['move']
+            sound.play(-1)
+            playing_sounds['move_right'] = sound
+    else:
+        if 'move_right' in playing_sounds:
+            playing_sounds['move_right'].stop()
+            del playing_sounds['move_right']
+        
+        # UP key
+    if keys[pygame.K_UP]:
+        dy = -5
+        if 'move_up' not in playing_sounds:
+            sound = sound_mgr.sounds['move']
+            sound.play(-1)
+            playing_sounds['move_up'] = sound
+    else:
+        if 'move_up' in playing_sounds:
+            playing_sounds['move_up'].stop()
+            del playing_sounds['move_up']
+        
+        # DOWN key
+    if keys[pygame.K_DOWN]:
+        dy = 5
+        if 'move_down' not in playing_sounds:
+            sound = sound_mgr.sounds['move']
+            sound.play(-1)
+            playing_sounds['move_down'] = sound
+    else:
+        if 'move_down' in playing_sounds:
+            playing_sounds['move_down'].stop()
+            del playing_sounds['move_down']
+    
     client.send_input(dx, dy)
 
-    # draw
+
+
     for y in range(700):
         shade = 30 + int(40 * (y / 700))
         pygame.draw.line(screen, (shade, shade, shade), (0, y), (1000, y))
