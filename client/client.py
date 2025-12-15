@@ -37,6 +37,7 @@ class Client:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((host, TCP_PORT))
         threading.Thread(target=self.recv_loop, daemon=True).start()
+        self.connected = True
 
     def recv_loop(self):
         buf = b""
@@ -44,6 +45,7 @@ class Client:
             try:
                 data = self.sock.recv(4096)
                 if not data:
+                    self.connected = False
                     break
                 buf += data
                 while b"\n" in buf:
@@ -79,6 +81,7 @@ else:
     print("No rooms found.")
 
 running = True
+font = pygame.font.SysFont(None, 24)
 while running:
     dx = dy = 0
     for e in pygame.event.get():
@@ -96,9 +99,20 @@ while running:
     # draw
     screen.fill((30, 30, 30))
     for p in client.players:
-        x = max(0, min(960, p["x"]))
-        y = max(0, min(660, p["y"]))
-        pygame.draw.rect(screen, (0,255,0), (x, y, 40, 40))
+        color = (0,255,0)
+        if p["id"] == client.id:
+            color = (0,0,255)  # local player blue
+
+        pygame.draw.rect(screen, color, (p["x"], p["y"], 40, 40))
+        fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, (255, 255, 255))
+        screen.blit(fps_text, (10, 10))
+        help_text = font.render("Use Arrow Keys to Move", True, (200,200,200))
+        screen.blit(help_text, (10, 40))
+        status = "Connected" if client.connected else "Disconnected"
+        status_text = font.render(f"Status: {status}", True, (255,255,0))
+        screen.blit(status_text, (10, 70))
+
+
 
 
     pygame.display.flip()
