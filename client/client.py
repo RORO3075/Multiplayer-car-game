@@ -4,6 +4,7 @@ import json
 import pygame
 from pygame import mixer
 import time
+import random
 
 DISCOVERY_PORT = 50001
 TCP_PORT = 50000
@@ -27,6 +28,25 @@ def discover_rooms(timeout=1.5):
             pass
 
     return found
+
+class Obstacle:
+    def __init__(self, x, y, width=60, height=40):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.speed = 3 
+    
+    def update(self):
+        self.y += self.speed
+    
+    def draw(self, screen):
+        pygame.draw.rect(screen, (255, 50, 50), (self.x, self.y, self.width, self.height))
+        pygame.draw.rect(screen, (200, 0, 0), (self.x, self.y, self.width, self.height), 2)
+    
+    def is_offscreen(self):
+        return self.y > 700
+
 
 class SoundManager:
     def __init__(self):
@@ -294,36 +314,36 @@ while True:
 running = True
 font = pygame.font.SysFont(None, 24)
 playing_sounds = {}
+obstacles = []
+spawn_counter = 0
+spawn_rate = 30
 
 while running:
     dx = dy = 0
+
+    # Process events once per frame
     for e in pygame.event.get():
         if e.type == pygame.QUIT:
             running = False
 
-    dx = dy = 0
     keys = pygame.key.get_pressed()
-        
-    for e in pygame.event.get():
-        if e.type == pygame.QUIT:
-            running = False
-        
-        # LEFT key
+
+    # LEFT key
     if keys[pygame.K_LEFT]:
         dx = -5
-        if 'move_left' not in playing_sounds:
+        if 'move_left' not in playing_sounds and 'move' in sound_mgr.sounds:
             sound = sound_mgr.sounds['move']
-            sound.play(-1)  # -1 = loop infinitely
+            sound.play(-1)
             playing_sounds['move_left'] = sound
     else:
         if 'move_left' in playing_sounds:
             playing_sounds['move_left'].stop()
             del playing_sounds['move_left']
-        
-        # RIGHT key
+
+    # RIGHT key
     if keys[pygame.K_RIGHT]:
         dx = 5
-        if 'move_right' not in playing_sounds:
+        if 'move_right' not in playing_sounds and 'move' in sound_mgr.sounds:
             sound = sound_mgr.sounds['move']
             sound.play(-1)
             playing_sounds['move_right'] = sound
@@ -331,11 +351,11 @@ while running:
         if 'move_right' in playing_sounds:
             playing_sounds['move_right'].stop()
             del playing_sounds['move_right']
-        
-        # UP key
+
+    # UP key
     if keys[pygame.K_UP]:
         dy = -5
-        if 'move_up' not in playing_sounds:
+        if 'move_up' not in playing_sounds and 'move' in sound_mgr.sounds:
             sound = sound_mgr.sounds['move']
             sound.play(-1)
             playing_sounds['move_up'] = sound
@@ -343,11 +363,11 @@ while running:
         if 'move_up' in playing_sounds:
             playing_sounds['move_up'].stop()
             del playing_sounds['move_up']
-        
-        # DOWN key
+
+    # DOWN key
     if keys[pygame.K_DOWN]:
         dy = 5
-        if 'move_down' not in playing_sounds:
+        if 'move_down' not in playing_sounds and 'move' in sound_mgr.sounds:
             sound = sound_mgr.sounds['move']
             sound.play(-1)
             playing_sounds['move_down'] = sound
@@ -355,14 +375,29 @@ while running:
         if 'move_down' in playing_sounds:
             playing_sounds['move_down'].stop()
             del playing_sounds['move_down']
-    
+
+    # Always send input and update world each frame
     client.send_input(dx, dy)
 
+    spawn_counter += 1
+    if spawn_counter >= spawn_rate:
+        random_x = random.randint(0, 740)
+        obstacles.append(Obstacle(random_x, -40))
+        spawn_counter = 0
 
+    for obs in obstacles:
+        obs.update()
 
-    for y in range(700):
-        shade = 30 + int(40 * (y / 700))
-        pygame.draw.line(screen, (shade, shade, shade), (0, y), (1000, y))
+    obstacles = [obs for obs in obstacles if not obs.is_offscreen()]
+
+    # Background gradient
+    for yy in range(700):
+        shade = 30 + int(40 * (yy / 700))
+        pygame.draw.line(screen, (shade, shade, shade), (0, yy), (1000, yy))
+
+    # Draw obstacles
+    for obs in obstacles:
+        obs.draw(screen)
 
     for p in client.players:
         color = (0,255,0)
