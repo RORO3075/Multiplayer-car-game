@@ -37,6 +37,7 @@ class Client:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((host, TCP_PORT))
         threading.Thread(target=self.recv_loop, daemon=True).start()
+        self.connected = True
 
     def recv_loop(self):
         buf = b""
@@ -44,6 +45,7 @@ class Client:
             try:
                 data = self.sock.recv(4096)
                 if not data:
+                    self.connected = False
                     break
                 buf += data
                 while b"\n" in buf:
@@ -64,6 +66,37 @@ class Client:
             pass
 
 # ---------------------- PYGAME LOOP ----------------------
+
+def main_menu(screen):
+    font = pygame.font.Font(None, 56)
+    small = pygame.font.Font(None, 32)
+    clock = pygame.time.Clock()
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1:
+                    return "join"
+                if event.key == pygame.K_2:
+                    return "create"
+
+        screen.fill((20, 20, 20))
+
+        title = font.render("Multiplayer Racing", True, (255, 255, 255))
+        join = small.render("Press 1 : Join Room", True, (200, 200, 200))
+        create = small.render("Press 2 : Create Room (Localhost)", True, (200, 200, 200))
+
+        screen.blit(title, (350, 200))
+        screen.blit(join, (380, 300))
+        screen.blit(create, (340, 350))
+
+        pygame.display.flip()
+        clock.tick(60)
+
 pygame.init()
 screen = pygame.display.set_mode((1000, 700))
 pygame.display.set_caption("Multiplayer Racing Game")
@@ -71,14 +104,26 @@ clock = pygame.time.Clock()
 
 client = Client()
 
-rooms = discover_rooms()
-if rooms:
-    print("Found rooms:", rooms)
-    client.connect(rooms[0]["host"])   # auto-join first found
-else:
-    print("No rooms found.")
+choice = main_menu(screen)
+
+if choice == "join":
+    rooms = discover_rooms()
+    room_code = rooms[0]["room_code"]
+    if rooms:
+        print("Found rooms:", rooms)
+        client.connect(rooms[0]["host"])
+    else:
+        print("No rooms found.")
+        pygame.quit()
+        exit()
+
+elif choice == "create":
+    client.connect("127.0.0.1")
+    room_code = "ROOM123"
+
 
 running = True
+font = pygame.font.SysFont(None, 24)
 while running:
     dx = dy = 0
     for e in pygame.event.get():
@@ -94,12 +139,25 @@ while running:
     client.send_input(dx, dy)
 
     # draw
-    screen.fill((30, 30, 30))
-    for p in client.players:
-        x = max(0, min(960, p["x"]))
-        y = max(0, min(660, p["y"]))
-        pygame.draw.rect(screen, (0,255,0), (x, y, 40, 40))
+    for y in range(700):
+        shade = 30 + int(40 * (y / 700))
+        pygame.draw.line(screen, (shade, shade, shade), (0, y), (1000, y))
 
+    for p in client.players:
+        color = (0,255,0)
+        if p["id"] == client.id:
+            color = (0,0,255)  # local player blue
+
+        pygame.draw.rect(screen, color, (p["x"], p["y"], 40, 40))
+        fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, (255, 255, 255))
+        screen.blit(fps_text, (10, 10))
+        help_text = font.render("Use Arrow Keys to Move", True, (200,200,200))
+        screen.blit(help_text, (10, 40))
+        status = "Connected" if client.connected else "Disconnected"
+        status_text = font.render(f"Status: {status}", True, (255,255,0))
+        screen.blit(status_text, (10, 70))
+        room_text = font.render(f"Room: {room_code}", True, (255,255,255))
+        screen.blit(room_text, (850, 10))
 
     pygame.display.flip()
     clock.tick(60)
