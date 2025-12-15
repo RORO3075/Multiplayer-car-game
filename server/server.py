@@ -52,11 +52,37 @@ class RoomServer:
 
         while self.running:
             conn, addr = srv.accept()
-            pid = f"P{len(self.clients)+1}"
+
+            try:
+                data = conn.recv(1024).decode()
+                msg = json.loads(data)
+
+                if msg.get("type") != "join" or msg.get("room_code") != self.code:
+                    conn.sendall(json.dumps({
+                        "type": "error",
+                        "message": "Invalid room code"
+                    }).encode() + b"\n")
+                    conn.close()
+                    continue
+
+            except:
+                conn.close()
+                continue
+
+            pid = f"P{len(self.clients) + 1}"
             self.clients[conn] = {"id": pid, "x": 500, "y": 350}
 
-            conn.sendall(json.dumps({"type": "welcome", "id": pid}).encode()+b"\n")
-            threading.Thread(target=self.client_receiver, args=(conn,), daemon=True).start()
+            conn.sendall(json.dumps({
+                "type": "welcome",
+                "id": pid
+            }).encode() + b"\n")
+
+            threading.Thread(
+                target=self.client_receiver,
+                args=(conn,),
+                daemon=True
+            ).start()
+
 
     # TCP receive loop
     def client_receiver(self, conn):
