@@ -66,6 +66,7 @@ class Client:
 # ---------------------- PYGAME LOOP ----------------------
 pygame.init()
 screen = pygame.display.set_mode((1000, 700))
+pygame.display.set_caption("Multiplayer Racing Game")
 clock = pygame.time.Clock()
 
 client = Client()
