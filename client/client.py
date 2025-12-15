@@ -79,6 +79,7 @@ else:
     print("No rooms found.")
 
 running = True
+font = pygame.font.SysFont(None, 24)
 while running:
     dx = dy = 0
     for e in pygame.event.get():
@@ -99,6 +100,8 @@ while running:
         x = max(0, min(960, p["x"]))
         y = max(0, min(660, p["y"]))
         pygame.draw.rect(screen, (0,255,0), (x, y, 40, 40))
+        fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, (255, 255, 255))
+        screen.blit(fps_text, (10, 10))
 
 
     pygame.display.flip()
