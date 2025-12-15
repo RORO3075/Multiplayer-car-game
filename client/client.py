@@ -73,14 +73,20 @@ clock = pygame.time.Clock()
 
 client = Client()
 
-rooms = discover_rooms()
-room_code = rooms[0]["room_code"]
+choice = main_menu(screen)
 
-if rooms:
-    print("Found rooms:", rooms)
-    client.connect(rooms[0]["host"])   # auto-join first found
-else:
-    print("No rooms found.")
+if choice == "join":
+    rooms = discover_rooms()
+    if rooms:
+        client.connect(rooms[0]["host"])
+    else:
+        print("No rooms found.")
+        pygame.quit()
+        exit()
+
+elif choice == "create":
+    client.connect("127.0.0.1")
+
 
 running = True
 font = pygame.font.SysFont(None, 24)
@@ -102,7 +108,6 @@ while running:
     for y in range(700):
         shade = 30 + int(40 * (y / 700))
         pygame.draw.line(screen, (shade, shade, shade), (0, y), (1000, y))
-
 
     for p in client.players:
         color = (0,255,0)
