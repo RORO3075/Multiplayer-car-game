@@ -29,36 +29,27 @@ def discover_rooms(timeout=1.5):
 
     return found
 
-# Car sprite generation - TOP DOWN VIEW
 def generate_car_sprite(color):
-    """Generate a top-down car sprite"""
     surf = pygame.Surface((40, 40), pygame.SRCALPHA)
-    
-    # Main body (rectangle, top-down view)
+
     pygame.draw.rect(surf, color, (10, 5, 20, 30))
-    
-    # Front bumper (darker)
+
     pygame.draw.rect(surf, (100, 100, 100), (8, 3, 24, 2))
-    
-    # Windows (light blue)
+
     pygame.draw.rect(surf, (100, 150, 255), (12, 8, 16, 6))
     pygame.draw.rect(surf, (100, 150, 255), (12, 18, 16, 6))
-    
-    # Left wheels
+
     pygame.draw.rect(surf, (30, 30, 30), (6, 10, 4, 6))
     pygame.draw.rect(surf, (30, 30, 30), (6, 24, 4, 6))
-    
-    # Right wheels
+
     pygame.draw.rect(surf, (30, 30, 30), (30, 10, 4, 6))
     pygame.draw.rect(surf, (30, 30, 30), (30, 24, 4, 6))
-    
-    # Headlights (small circles at front)
+
     pygame.draw.circle(surf, (255, 255, 0), (14, 4), 1)
     pygame.draw.circle(surf, (255, 255, 0), (26, 4), 1)
     
     return surf
 
-# Pre-generate car sprites
 car_sprites = {
     "green": generate_car_sprite((0, 255, 0)),
     "blue": generate_car_sprite((0, 0, 255))
@@ -427,9 +418,29 @@ while running:
     obstacles = [obs for obs in obstacles if not obs.is_offscreen()]
 
     # Background gradient
-    for yy in range(700):
-        shade = 30 + int(40 * (yy / 700))
-        pygame.draw.line(screen, (shade, shade, shade), (0, yy), (1000, yy))
+    for y in range(700):
+        shade = 30 + int(40 * (y / 700))
+        pygame.draw.line(screen, (shade, shade, shade), (0, y), (780, y))
+        
+        # Draw road (darker area)
+    pygame.draw.rect(screen, (50, 50, 50), (0, 0, 780, 700))
+        
+        # Draw lane separators (dashed yellow lines)
+    lane_width = 260
+    dash_height = 20
+    gap_height = 10
+        
+        # Lane 1-2 separator
+    for y in range(0, 700, dash_height + gap_height):
+        pygame.draw.line(screen, (255, 255, 100), (lane_width, y), (lane_width, y + dash_height), 2)
+        
+        # Lane 2-3 separator
+    for y in range(0, 700, dash_height + gap_height):
+        pygame.draw.line(screen, (255, 255, 100), (lane_width * 2, y), (lane_width * 2, y + dash_height), 2)
+        
+        # Road edges (white lines)
+    pygame.draw.line(screen, (255, 255, 255), (0, 0), (0, 700), 3)
+    pygame.draw.line(screen, (255, 255, 255), (780, 0), (780, 700), 3)
 
     # Draw obstacles
     for obs in obstacles:
