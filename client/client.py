@@ -29,6 +29,42 @@ def discover_rooms(timeout=1.5):
 
     return found
 
+# Car sprite generation - TOP DOWN VIEW
+def generate_car_sprite(color):
+    """Generate a top-down car sprite"""
+    surf = pygame.Surface((40, 40), pygame.SRCALPHA)
+    
+    # Main body (rectangle, top-down view)
+    pygame.draw.rect(surf, color, (10, 5, 20, 30))
+    
+    # Front bumper (darker)
+    pygame.draw.rect(surf, (100, 100, 100), (8, 3, 24, 2))
+    
+    # Windows (light blue)
+    pygame.draw.rect(surf, (100, 150, 255), (12, 8, 16, 6))
+    pygame.draw.rect(surf, (100, 150, 255), (12, 18, 16, 6))
+    
+    # Left wheels
+    pygame.draw.rect(surf, (30, 30, 30), (6, 10, 4, 6))
+    pygame.draw.rect(surf, (30, 30, 30), (6, 24, 4, 6))
+    
+    # Right wheels
+    pygame.draw.rect(surf, (30, 30, 30), (30, 10, 4, 6))
+    pygame.draw.rect(surf, (30, 30, 30), (30, 24, 4, 6))
+    
+    # Headlights (small circles at front)
+    pygame.draw.circle(surf, (255, 255, 0), (14, 4), 1)
+    pygame.draw.circle(surf, (255, 255, 0), (26, 4), 1)
+    
+    return surf
+
+# Pre-generate car sprites
+car_sprites = {
+    "green": generate_car_sprite((0, 255, 0)),
+    "blue": generate_car_sprite((0, 0, 255))
+}
+
+
 class Obstacle:
     def __init__(self, x, y, width=60, height=40):
         self.x = x
@@ -400,12 +436,13 @@ while running:
         obs.draw(screen)
 
     for p in client.players:
-        color = (0,255,0)
         if p["id"] == client.id:
-            color = (0,0,255)  # local player blue
+            car_sprite = car_sprites["blue"]
+        else:
+            car_sprite = car_sprites["green"]
         p["x"] = max(0, min(p["x"], 740))
         p["y"] = max(0, min(p["y"], 660))
-        pygame.draw.rect(screen, color, (p["x"], p["y"], 40, 40))
+        screen.blit(car_sprite, (p["x"], p["y"]))
         fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, (255, 255, 255))
         screen.blit(fps_text, (10, 10))
         help_text = font.render("Use Arrow Keys to Move", True, (200,200,200))
