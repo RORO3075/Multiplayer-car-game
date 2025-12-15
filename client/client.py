@@ -96,7 +96,10 @@ while running:
     # draw
     screen.fill((30, 30, 30))
     for p in client.players:
-        pygame.draw.rect(screen, (0,255,0), (p["x"], p["y"], 40, 40))
+        x = max(0, min(960, p["x"]))
+        y = max(0, min(660, p["y"]))
+        pygame.draw.rect(screen, (0,255,0), (x, y, 40, 40))
+
 
     pygame.display.flip()
     clock.tick(60)
